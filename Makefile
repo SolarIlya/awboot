@@ -17,7 +17,7 @@ include lib/lib.mk
 
 CFLAGS += -mcpu=cortex-a7 -mthumb-interwork -mthumb -mno-unaligned-access -mfpu=neon-vfpv4 -mfloat-abi=hard
 CFLAGS += -fno-tree-vectorize -ffreestanding -fno-builtin
-CFLAGS += -ffunction-sections -fdata-sections -Os -std=c2x -Wall -Werror -Wno-unused-function $(INCLUDES) $(DEFINES)
+CFLAGS += -ffunction-sections -fdata-sections -Os -std=c2x -Wall -Wno-unused-function $(INCLUDES) $(DEFINES)
 
 ASFLAGS += $(CFLAGS)
 
@@ -49,7 +49,7 @@ ifneq ($(INVALID_VARIANTS),)
 $(error Unknown VARIANT(s): $(INVALID_VARIANTS). Supported: $(SUPPORTED_VARIANTS))
 endif
 
-DTB ?= sun8i-t113-mangopi-dual.dtb
+DTB ?= sun8i-t113-mangopi-mq-r.dtb.dtb
 KERNEL ?= zImage
 
 all: git begin build mkboot

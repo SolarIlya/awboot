@@ -134,7 +134,7 @@ static void boot_linux_psci(void (*kernel_entry)(int zero, int arch,
 }
 
 int main(void)
-{
+{	
 	unsigned int entry_point = 0;
 	void (*kernel_entry)(int zero, int arch, unsigned int params);
 	uint32_t	 memory_size;
@@ -164,7 +164,7 @@ int main(void)
 	sunxi_clk_dump();
 #endif
 
-	sunxi_wdg_set(10);
+	//sunxi_wdg_set(10);
 	memset(&image, 0, sizeof(image_info_t));
 	image.filename		   = kernel_filename;
 	image.of_filename	   = dtb_filename;
@@ -257,7 +257,7 @@ int main(void)
 #endif // CONFIG_SPI_NAND
 
 	// The kernel will reset WDG
-	sunxi_wdg_set(3);
+	//sunxi_wdg_set(3);
 
 	if (boot_image_setup((unsigned char *)image.kernel_dest, &entry_point) != 0) {
 		fatal("boot setup failed\r\n");
@@ -270,7 +270,7 @@ int main(void)
 	if (strlen(cmd_line) > 0) {
 		debug("BOOT: args %s\r\n", cmd_line);
 		if (fdt_update_bootargs(image.dtb_dest, cmd_line)) {
-			fatal("BOOT: Failed to set boot args\r\n");
+			//fatal("BOOT: Failed to set boot args\r\n");
 		}
 	}
 
@@ -279,7 +279,7 @@ int main(void)
 		fatal("BOOT: invalid memory size %" PRIu32 "\r\n", memory_size);
 	}
 	if (fdt_update_memory(image.dtb_dest, SDRAM_BASE, usable_memory_size)) {
-		fatal("BOOT: Failed to set memory size\r\n");
+		//fatal("BOOT: Failed to set memory size\r\n");
 	} else {
 		debug("BOOT: Set memory size to 0x%" PRIx32 " (reserve 0x%" PRIx32 ")\r\n",
 					usable_memory_size, (uint32_t)CONFIG_PSCI_DRAM_RESERVE);

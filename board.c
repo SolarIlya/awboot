@@ -115,6 +115,5 @@ void board_set_led(uint8_t num, uint8_t on)
 
 void board_init()
 {
-	board_init_led(led_blue);
 	sunxi_usart_init(&USART_DBG, 115200);
 }

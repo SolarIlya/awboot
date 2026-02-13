@@ -145,7 +145,8 @@ typedef enum {
 	SPI_NAND_MFR_WINBOND	= 0xef,
 	SPI_NAND_MFR_GIGADEVICE = 0xc8,
 	SPI_NAND_MFR_MACRONIX	= 0xc2,
-	SPI_NAND_MFR_MICRON		= 0x2c,
+	SPI_NAND_MFR_MICRON	= 0x2c,
+	SPI_NAND_MFR_XTX	= 0x0B
 } spi_mfr_id;
 
 static const spi_nand_info_t spi_nand_infos[] = {
@@ -190,6 +191,9 @@ static const spi_nand_info_t spi_nand_infos[] = {
 	{"MT29F4G01ABAFD",	   {.mfr = SPI_NAND_MFR_MICRON, .dev = 0x34, 1}, 4096, 256, 64, 2048, 1, 1, SPI_IO_DUAL_RX},
 	{"MT29F4G01ADAGD",	   {.mfr = SPI_NAND_MFR_MICRON, .dev = 0x36, 1}, 2048, 128, 64, 2048, 2, 2, SPI_IO_DUAL_RX},
 	{"MT29F8G01ADAFD",	   {.mfr = SPI_NAND_MFR_MICRON, .dev = 0x46, 1}, 4096, 256, 64, 2048, 1, 2, SPI_IO_DUAL_RX},
+
+	/* XTX TECHNOLOGY */
+	{	"XT26G04D",	   {.mfr = SPI_NAND_MFR_XTX, .dev = 0x33, 1}, 4096,  256, 64, 2048, 1, 1, SPI_IO_DUAL_RX},
 };
 
 sunxi_spi_t		*spip;
@@ -784,7 +788,7 @@ uint32_t spi_nand_read(sunxi_spi_t *spi, uint8_t *buf, uint32_t addr, uint32_t r
 		return -1;
 	}
 
-	if (spi->info.id.mfr == SPI_NAND_MFR_GIGADEVICE) {
+	if (spi->info.id.mfr == SPI_NAND_MFR_GIGADEVICE || spi->info.id.mfr == SPI_NAND_MFR_XTX) {
 		while (cnt > 0) {
 			ca = address & (spi->info.page_size - 1);
 			n  = cnt > (spi->info.page_size - ca) ? (spi->info.page_size - ca) : cnt;

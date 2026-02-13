@@ -143,88 +143,102 @@ static inline int of_blob_data_size(void *blob)
  */
 static int of_get_token_nextoffset(void *blob, int startoffset, int *nextoffset, unsigned int *token)
 {
-	const unsigned int *p, *plen;
-	unsigned int		tag;
-	const char		   *cell;
-	unsigned int		offset = startoffset;
+    const unsigned int *p, *plen;
+    unsigned int        tag;
+    const char         *cell;
+    unsigned int        offset = startoffset;
 
-	*nextoffset = -1;
+    *nextoffset = -1;
 
-	if (offset % 4) {
-		debug("DT: the token offset is not aligned\r\n");
-		return -1;
-	}
+    if (offset % 4) {
+        warning("DT: Offset 0x%x not aligned to 4!\n", offset);
+        return -1;
+    }
 
-	/* Get the token */
-	p	= (unsigned int *)of_dt_struct_offset(blob, offset);
-	tag = swap_uint32(*p);
+    /* Get the token */
+    p   = (unsigned int *)of_dt_struct_offset(blob, offset);
+    tag = swap_uint32(*p);
 
-	/* to get offset for the next token */
-	offset += 4;
-	if (tag == OF_DT_TOKEN_NODE_BEGIN) {
-		/* node name */
-		cell = (char *)of_dt_struct_offset(blob, offset);
-		do {
-			cell++;
-			offset++;
-		} while (*cell != '\0');
-		/* the \0 is part of the node name, hence offset must be updated to the
-		 * position past the \0.
-		 */
-		++offset;
-	} else if (tag == OF_DT_TOKEN_PROP) {
-		/* the property value size */
-		plen = (unsigned int *)of_dt_struct_offset(blob, offset);
-		/* name offset + value size + value */
-		offset += swap_uint32(*plen) + 8;
-	} else if ((tag != OF_DT_TOKEN_NODE_END) && (tag != OF_DT_TOKEN_NOP) && (tag != OF_DT_END))
-		return -1;
+    /* КРИТИЧЕСКАЯ ОТЛАДКА - только при ошибках */
+    if (tag != OF_DT_TOKEN_NODE_BEGIN && 
+        tag != OF_DT_TOKEN_NODE_END && 
+        tag != OF_DT_TOKEN_PROP && 
+        tag != OF_DT_TOKEN_NOP && 
+        tag != OF_DT_END) {
+        warning("DT: BAD TOKEN 0x%08x at offset 0x%x!\n", tag, offset);
+        return -1;
+    }
 
-	*nextoffset = OF_ALIGN(offset);
-	*token		= tag;
+    /* to get offset for the next token */
+    offset += 4;
+    
+    if (tag == OF_DT_TOKEN_NODE_BEGIN) {
+        /* node name */
+        cell = (char *)of_dt_struct_offset(blob, offset);
+        do {
+            cell++;
+            offset++;
+        } while (*cell != '\0');
+        offset++; /* the \0 */
+    } else if (tag == OF_DT_TOKEN_PROP) {
+        /* the property value size */
+        plen = (unsigned int *)of_dt_struct_offset(blob, offset);
+        offset += swap_uint32(*plen) + 8;
+    }
 
-	return 0;
+    *nextoffset = OF_ALIGN(offset);
+    *token      = tag;
+
+    return 0;
 }
-
 static int of_get_nextnode_offset(void *blob, int start_offset, int *offset, int *nextoffset, int *depth)
 {
-	int			 next_offset = 0;
-	int			 nodeoffset	 = start_offset;
-	unsigned int token;
-	int			 ret;
+    int             next_offset = 0;
+    int             nodeoffset   = start_offset;
+    unsigned int    token;
+    int             ret;
 
-	if (!offset || !nextoffset || !depth)
-		return -1;
+    if (!offset || !nextoffset || !depth)
+        return -1;
+    
+    while (1) {
+        ret = of_get_token_nextoffset(blob, nodeoffset, &next_offset, &token);
+        if (ret) {
+            /* КРИТИЧЕСКАЯ ОШИБКА - не смогли прочитать токен */
+            warning("DT: FAIL to read token at offset 0x%x, ret=%d\n", nodeoffset, ret);
+            return ret;
+        }
 
-	while (1) {
-		ret = of_get_token_nextoffset(blob, nodeoffset, &next_offset, &token);
-		if (ret)
-			return ret;
+        if (token == OF_DT_TOKEN_NODE_BEGIN) {
+            (*depth)++;
+            break;
+        } else {
+            nodeoffset = next_offset;
 
-		if (token == OF_DT_TOKEN_NODE_BEGIN) {
-			/* find the node start token */
-			(*depth)++;
+            if ((token == OF_DT_TOKEN_PROP) || (token == OF_DT_TOKEN_NOP))
+                continue;
+            else if (token == OF_DT_TOKEN_NODE_END) {
+                (*depth)--;
 
-			break;
-		} else {
-			nodeoffset = next_offset;
+                if ((*depth) < 0) {
+                    warning("DT: DEPTH negative at offset 0x%x!\n", nodeoffset);
+                    return -1;
+                }
+            } else if (token == OF_DT_END) {
+                debug("DT: Reached END token at offset 0x%x\n", nodeoffset);
+                return -1;
+            } else {
+                /* КРИТИЧЕСКАЯ - неизвестный токен */
+                warning("DT: UNKNOWN token 0x%08x at offset 0x%x!\n", token, nodeoffset);
+                return -1;
+            }
+        }
+    };
 
-			if ((token == OF_DT_TOKEN_PROP) || (token == OF_DT_TOKEN_NOP))
-				continue;
-			else if (token == OF_DT_TOKEN_NODE_END) {
-				(*depth)--;
+    *offset     = nodeoffset;
+    *nextoffset = next_offset;
 
-				if ((*depth) < 0)
-					return -1; /* not found */
-			} else if (token == OF_DT_END)
-				return -1; /* not found*/
-		}
-	};
-
-	*offset		= nodeoffset;
-	*nextoffset = next_offset;
-
-	return 0;
+    return 0;
 }
 
 static int of_get_node_offset(void *blob, const char *name, int *offset)
@@ -252,6 +266,7 @@ static int of_get_node_offset(void *blob, const char *name, int *offset)
 			return -1;
 
 		nodename = (char *)of_dt_struct_offset(blob, (nodeoffset + 4));
+		
 		if ((memcmp(nodename, name, namelen) == 0) && ((nodename[namelen] == '\0') || (nodename[namelen] == '@')))
 			break;
 
@@ -556,7 +571,7 @@ int fdt_update_bootargs(void *blob, const char *bootargs)
 	 * if the property doesn't exit, add it
 	 * if the property exists, update it.
 	 */
-	ret = of_set_property(blob, nodeoffset, "bootargs", (void *)bootargs, strlen(bootargs));
+	ret = of_set_property(blob, nodeoffset, "bootargs", (void *)bootargs, strlen(bootargs) + 1);
 	if (ret) {
 		warning("fail to set bootargs property\r\n");
 		return ret;

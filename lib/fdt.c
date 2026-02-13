@@ -159,7 +159,7 @@ static int of_get_token_nextoffset(void *blob, int startoffset, int *nextoffset,
     p   = (unsigned int *)of_dt_struct_offset(blob, offset);
     tag = swap_uint32(*p);
 
-    /* КРИТИЧЕСКАЯ ОТЛАДКА - только при ошибках */
+    /* Debug information */
     if (tag != OF_DT_TOKEN_NODE_BEGIN && 
         tag != OF_DT_TOKEN_NODE_END && 
         tag != OF_DT_TOKEN_PROP && 
@@ -204,7 +204,7 @@ static int of_get_nextnode_offset(void *blob, int start_offset, int *offset, int
     while (1) {
         ret = of_get_token_nextoffset(blob, nodeoffset, &next_offset, &token);
         if (ret) {
-            /* КРИТИЧЕСКАЯ ОШИБКА - не смогли прочитать токен */
+            /* Debug information */
             warning("DT: FAIL to read token at offset 0x%x, ret=%d\n", nodeoffset, ret);
             return ret;
         }
@@ -228,7 +228,7 @@ static int of_get_nextnode_offset(void *blob, int start_offset, int *offset, int
                 debug("DT: Reached END token at offset 0x%x\n", nodeoffset);
                 return -1;
             } else {
-                /* КРИТИЧЕСКАЯ - неизвестный токен */
+                /* Debug information */
                 warning("DT: UNKNOWN token 0x%08x at offset 0x%x!\n", token, nodeoffset);
                 return -1;
             }
